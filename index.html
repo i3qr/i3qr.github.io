@@ -17,7 +17,7 @@
 				$(".info").show()
 				var total = document.frmCalCommission.total.value;
 				total=parseArabic(total);
-				var factor = 0.05;
+				var factor = 0.01;
 				var factorDiscount = factor;
 				$("#commissionvalue").text(Math.floor(total * factor));
 				$("#commissionvaluediscount").text(Math.floor(total * factorDiscount));
