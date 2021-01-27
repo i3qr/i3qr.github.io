@@ -1,39 +1,144 @@
-jQuery(document).ready(function($){
-	//open interest point description
-	$('.cd-single-point').children('a').on('click', function(){
-		var selectedPoint = $(this).parent('li');
-		if( selectedPoint.hasClass('is-open') ) {
-			selectedPoint.removeClass('is-open').addClass('visited');
-		} else {
-			selectedPoint.addClass('is-open').siblings('.cd-single-point.is-open').removeClass('is-open').addClass('visited');
-		}
+jQuery(document).ready(function(){
+	var modalTriggerBts = $('a[data-type="cd-modal-trigger"]'),
+		coverLayer = $('.cd-cover-layer');
+	
+	/*
+تجربة	
+	*/
+var animationDelay = 2500;
+ 
+animateHeadline($('.cd-headline'));
+ 
+function animateHeadline($headlines) {
+	$headlines.each(function(){
+		var headline = $(this);
+		//trigger animation
+		setTimeout(function(){ hideWord( headline.find('.is-visible') ) }, animationDelay);
+		//other checks here ...
 	});
-	//close interest point description
-	$('.cd-close-info').on('click', function(event){
-		event.preventDefault();
-		$(this).parents('.cd-single-point').eq(0).removeClass('is-open').addClass('visited');
+}
+function hideWord($word) {
+	var nextWord = takeNext($word);
+	switchWord($word, nextWord);
+	setTimeout(function(){ hideWord(nextWord) }, animationDelay);
+}
+ 
+function takeNext($word) {
+	return (!$word.is(':last-child')) ? $word.next() : $word.parent().children().eq(0);
+}
+ 
+function switchWord($oldWord, $newWord) {
+	$oldWord.removeClass('is-visible').addClass('is-hidden');
+	$newWord.removeClass('is-hidden').addClass('is-visible');
+}
+	/*
+تجربة	
+	*/
+	/*
+		convert a cubic bezier value to a custom mina easing
+		http://stackoverflow.com/questions/25265197/how-to-convert-a-cubic-bezier-value-to-a-custom-mina-easing-snap-svg
+	*/
+	var duration = 600,
+		epsilon = (1000 / 60 / duration) / 4,
+		firstCustomMinaAnimation = bezier(.63,.35,.48,.92, epsilon);
+
+	modalTriggerBts.each(function(){
+		initModal($(this));
 	});
 
-	//on desktop, switch from product intro div to product mockup div
-	$('#cd-start').on('click', function(event){
-		event.preventDefault();
-		//detect the CSS media query using .cd-product-intro::before content value
-		var mq = window.getComputedStyle(document.querySelector('.cd-product-intro'), '::before').getPropertyValue('content').replace(/"/g, "").replace(/'/g, "");
-		if(mq == 'mobile') {
-			$('body,html').animate({'scrollTop': $($(this).attr('href')).offset().top }, 200); 
-		} else {
-			$('.cd-product').addClass('is-product-tour').one('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend', function(){
-				$('.cd-close-product-tour').addClass('is-visible');
-				$('.cd-points-container').addClass('points-enlarged').one('webkitAnimationEnd oanimationend msAnimationEnd animationend', function(){
-					$(this).addClass('points-pulsing');
-				});
-			});
-		}
-	});
-	//on desktop, switch from product mockup div to product intro div
-	$('.cd-close-product-tour').on('click', function(){
-		$('.cd-product').removeClass('is-product-tour');
-		$('.cd-close-product-tour').removeClass('is-visible');
-		$('.cd-points-container').removeClass('points-enlarged points-pulsing');
-	});
+	function initModal(modalTrigger) {
+		var modalTriggerId =  modalTrigger.attr('id'),
+			modal = $('.cd-modal[data-modal="'+ modalTriggerId +'"]'),
+			svgCoverLayer = modal.children('.cd-svg-bg'),
+			paths = svgCoverLayer.find('path'),
+			pathsArray = [];
+		//store Snap objects
+		pathsArray[0] = Snap('#'+paths.eq(0).attr('id')),
+		pathsArray[1] = Snap('#'+paths.eq(1).attr('id')),
+		pathsArray[2] = Snap('#'+paths.eq(2).attr('id'));
+
+		//store path 'd' attribute values	
+		var pathSteps = [];
+		pathSteps[0] = svgCoverLayer.data('step1');
+		pathSteps[1] = svgCoverLayer.data('step2');
+		pathSteps[2] = svgCoverLayer.data('step3');
+		pathSteps[3] = svgCoverLayer.data('step4');
+		pathSteps[4] = svgCoverLayer.data('step5');
+		pathSteps[5] = svgCoverLayer.data('step6');
+		
+		//open modal window
+		modalTrigger.on('click', function(event){
+			event.preventDefault();
+			modal.addClass('modal-is-visible');
+			coverLayer.addClass('modal-is-visible');
+			animateModal(pathsArray, pathSteps, duration, 'open');
+		});
+
+		//close modal window
+		modal.on('click', '.modal-close', function(event){
+			event.preventDefault();
+			modal.removeClass('modal-is-visible');
+			coverLayer.removeClass('modal-is-visible');
+			animateModal(pathsArray, pathSteps, duration, 'close');
+		});
+	}
+
+	function animateModal(paths, pathSteps, duration, animationType) {
+		var path1 = ( animationType == 'open' ) ? pathSteps[1] : pathSteps[0],
+			path2 = ( animationType == 'open' ) ? pathSteps[3] : pathSteps[2],
+			path3 = ( animationType == 'open' ) ? pathSteps[5] : pathSteps[4];
+		paths[0].animate({'d': path1}, duration, firstCustomMinaAnimation);
+		paths[1].animate({'d': path2}, duration, firstCustomMinaAnimation);
+		paths[2].animate({'d': path3}, duration, firstCustomMinaAnimation);
+	}
+
+	function bezier(x1, y1, x2, y2, epsilon){
+		//https://github.com/arian/cubic-bezier
+		var curveX = function(t){
+			var v = 1 - t;
+			return 3 * v * v * t * x1 + 3 * v * t * t * x2 + t * t * t;
+		};
+
+		var curveY = function(t){
+			var v = 1 - t;
+			return 3 * v * v * t * y1 + 3 * v * t * t * y2 + t * t * t;
+		};
+
+		var derivativeCurveX = function(t){
+			var v = 1 - t;
+			return 3 * (2 * (t - 1) * t + v * v) * x1 + 3 * (- t * t * t + 2 * v * t) * x2;
+		};
+
+		return function(t){
+
+			var x = t, t0, t1, t2, x2, d2, i;
+
+			// First try a few iterations of Newton's method -- normally very fast.
+			for (t2 = x, i = 0; i < 8; i++){
+				x2 = curveX(t2) - x;
+				if (Math.abs(x2) < epsilon) return curveY(t2);
+				d2 = derivativeCurveX(t2);
+				if (Math.abs(d2) < 1e-6) break;
+				t2 = t2 - x2 / d2;
+			}
+
+			t0 = 0, t1 = 1, t2 = x;
+
+			if (t2 < t0) return curveY(t0);
+			if (t2 > t1) return curveY(t1);
+
+			// Fallback to the bisection method for reliability.
+			while (t0 < t1){
+				x2 = curveX(t2);
+				if (Math.abs(x2 - x) < epsilon) return curveY(t2);
+				if (x > x2) t0 = t2;
+				else t1 = t2;
+				t2 = (t1 - t0) * .5 + t0;
+			}
+
+			// Failure
+			return curveY(t2);
+
+		};
+	};
 });
