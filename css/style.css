@@ -48,7 +48,7 @@ Patterns - reusable parts of our design
 -------------------------------- */
 .cd-btn {
   display: inline-block;
-  padding: 0.4em 0.9em;
+  padding: 1em 2em;
   color: #dab433;
   border: 2px solid #dab433;
   font-weight: 700;
